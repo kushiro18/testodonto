@@ -1,0 +1,80 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Clinic {
+  id          String   @id @default(cuid())
+  name        String
+  address     String?
+  phone       String?
+  plan        String   @default("demo") // demo, basic, pro
+  paidUntil   DateTime?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  users       User[]
+  patients    Patient[]
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("dentist") // admin, dentist, receptionist, superadmin
+  active    Boolean  @default(true)
+  clinicId  String
+  clinic    Clinic   @relation(fields: [clinicId], references: [id])
+  createdAt DateTime @default(now())
+  odontograms Odontogram[]
+  appointments Appointment[]
+}
+
+model Patient {
+  id           String   @id @default(cuid())
+  dni          String
+  name         String
+  lastName     String
+  birthDate    DateTime?
+  gender       String?
+  phone        String?
+  email        String?
+  address      String?
+  clinicId     String
+  clinic       Clinic   @relation(fields: [clinicId], references: [id])
+  createdAt    DateTime @default(now())
+  odontograms  Odontogram[]
+  appointments Appointment[]
+
+  @@unique([dni, clinicId])
+}
+
+model Odontogram {
+  id          String   @id @default(cuid())
+  patientId   String
+  patient     Patient  @relation(fields: [patientId], references: [id])
+  dentistId   String
+  dentist     User     @relation(fields: [dentistId], references: [id])
+  type        String   @default("initial") // initial, evolution
+  data        Json     // { teeth: { "11": { conditions: [...] }, ... }, specifications: "" }
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Appointment {
+  id          String   @id @default(cuid())
+  patientId   String
+  patient     Patient  @relation(fields: [patientId], references: [id])
+  dentistId   String
+  dentist     User     @relation(fields: [dentistId], references: [id])
+  date        DateTime
+  duration    Int      @default(30)
+  status      String   @default("scheduled") // scheduled, completed, cancelled
+  notes       String?
+  createdAt   DateTime @default(now())
+}
